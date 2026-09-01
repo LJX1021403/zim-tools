@@ -20,6 +20,7 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <algorithm>
 
 #define ZIM_PRIVATE
 #include <zim/archive.h>
@@ -59,6 +60,27 @@ class ZimSplitter
         currentPartSize(0)
       {
         validatePartSize(maxPartSize, archive.getFilesize());
+        // Compute the largest chunk size, where a chunk is either the
+        // metadata + first cluster or a single cluster
+        auto offsets = getOffsets();
+        if (offsets.empty()) {
+            throw std::runtime_error("ZIM file contains no clusters to split");
+        }
+
+        zim::size_type minRequiredSize = 0;
+        zim::offset_type last = 0;
+        for (auto offset : offsets) {
+            auto chunkSize = static_cast<zim::size_type>(offset - last);
+                minRequiredSize = std::max(minRequiredSize, chunkSize);
+                last = offset;
+        }
+
+        if (maxPartSize < minRequiredSize) {
+              throw std::invalid_argument(
+                "part size must be at least " + std::to_string(minRequiredSize) +
+                " bytes (the size of the largest cluster)");
+        }
+
         batch_buffer = new char[BUFFER_SIZE];
     }
 
