@@ -21,6 +21,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <algorithm>
+#include <iostream>
 
 #define ZIM_PRIVATE
 #include <zim/archive.h>
@@ -47,6 +48,7 @@ class ZimSplitter
     std::ofstream ofile;
     std::string part_name;
     zim::size_type currentPartSize;
+    zim::size_type minRequiredChunkSize;
     char* batch_buffer;
 
   public:
@@ -67,22 +69,17 @@ class ZimSplitter
             throw std::runtime_error("ZIM file contains no clusters to split");
         }
 
-        zim::size_type minRequiredSize = 0;
+        minRequiredChunkSize = 0;
         zim::offset_type last = 0;
         for (auto offset : offsets) {
             auto chunkSize = static_cast<zim::size_type>(offset - last);
-                minRequiredSize = std::max(minRequiredSize, chunkSize);
+                minRequiredChunkSize = std::max(minRequiredChunkSize, chunkSize);
                 last = offset;
         }
-
-        if (maxPartSize < minRequiredSize) {
-              throw std::invalid_argument(
-                "part size must be at least " + std::to_string(minRequiredSize) +
-                " bytes (the size of the largest cluster)");
-        }
-
         batch_buffer = new char[BUFFER_SIZE];
     }
+
+    zim::size_type getMinRequiredChunkSize() const { return minRequiredChunkSize; }
 
     ~ZimSplitter() {
         close_file();
@@ -223,10 +220,18 @@ int main(int argc, char* argv[])
     // initalize app
     ZimSplitter app(args["<file>"].asString(), prefix, size);
 
-    if (!args["--force"] && app.check()) {
-        std::cout << "Creation of zim parts canceled because of previous errors." << std::endl;
-        std::cout << "Use --force option to create zim parts anyway." << std::endl;
-        return -1;
+    if (size < app.getMinRequiredChunkSize()) {
+        if (!args["--force"].asBool()) {
+            std::cerr << "Error: part size must be at least "
+                      << app.getMinRequiredChunkSize()
+                      << " bytes (the size of the largest chunk)" << std::endl;
+            return -1;
+        } else {
+            std::cout << "Warning: part size (" << size
+                      << ") is smaller than the minimum feasible chunk size ("
+                      << app.getMinRequiredChunkSize()
+                      << "). Parts may exceed the requested size." << std::endl;
+        }
     }
 
     app.run();
