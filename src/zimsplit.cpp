@@ -65,16 +65,14 @@ class ZimSplitter
         // Compute the largest chunk size, where a chunk is either the
         // metadata + first cluster or a single cluster
         auto offsets = getOffsets();
-        if (offsets.empty()) {
+        if (offsets.size()<2) {
             throw std::runtime_error("ZIM file contains no clusters to split");
         }
 
-        minRequiredChunkSize = 0;
-        zim::offset_type last = 0;
-        for (auto offset : offsets) {
-            auto chunkSize = static_cast<zim::size_type>(offset - last);
-                minRequiredChunkSize = std::max(minRequiredChunkSize, chunkSize);
-                last = offset;
+         minRequiredChunkSize = static_cast<zim::size_type>(offsets[1]);
+         for (std::size_t i = 2; i < offsets.size(); ++i) {
+             auto chunkSize = static_cast<zim::size_type>(offsets[i] - offsets[i - 1]);
+             minRequiredChunkSize = std::max(minRequiredChunkSize, chunkSize);
         }
         batch_buffer = new char[BUFFER_SIZE];
     }
