@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <cstdlib>
 
 #include "../src/zimsplit_size.h"
 #include "gtest/gtest.h"
@@ -108,4 +109,16 @@ TEST(ZimSplitSize, ValidatesPartSizeAgainstArchive)
                            TOO_LARGE_PART_SIZE_ERROR);
   EXPECT_INVALID_ARG_ERROR(validatePartSize(101, 100),
                            TOO_LARGE_PART_SIZE_ERROR);
+}
+
+TEST(ZimSplit, RejectsTooSmallSizeWithoutForce)
+{
+    const std::string cmd = "../build/src/zimsplit --size 1 ../test/data/zimfiles/good.zim";
+    EXPECT_NE(std::system(cmd.c_str()), 0);
+}
+
+TEST(ZimSplit, WarnsAndContinuesWithForce)
+{
+    const std::string cmd = "../build/src/zimsplit --size 1 --force ../test/data/zimfiles/good.zim";
+    EXPECT_EQ(std::system(cmd.c_str()), 0);
 }
