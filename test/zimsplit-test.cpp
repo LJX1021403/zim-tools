@@ -1,7 +1,8 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
-#include <cstdlib>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include "../src/zimsplit_size.h"
 #include "gtest/gtest.h"
@@ -23,6 +24,25 @@ constexpr auto TOO_LARGE_PART_SIZE_ERROR
     = "part size must be smaller than the input ZIM file";
 
 }  // namespace
+
+int run_command(const char* const argv[]) {
+    pid_t pid = fork();
+    if (pid == -1) {
+        return -1;
+    }
+    if (pid == 0) {
+        // 子进程：执行命令
+        execvp(argv[0], const_cast<char* const*>(argv));
+        _exit(127); // exec 失败
+    }
+    // 父进程：等待子进程结束
+    int status = 0;
+    waitpid(pid, &status, 0);
+    if (WIFEXITED(status)) {
+        return WEXITSTATUS(status);
+    }
+    return -1;
+}
 
 TEST(ZimSplitSize, ParsesBytes)
 {
@@ -113,12 +133,23 @@ TEST(ZimSplitSize, ValidatesPartSizeAgainstArchive)
 
 TEST(ZimSplit, RejectsTooSmallSizeWithoutForce)
 {
-    const std::string cmd = "../build/src/zimsplit --size 1 ../test/data/zimfiles/good.zim";
-    EXPECT_NE(std::system(cmd.c_str()), 0);
+    const char* argv[] = {
+        "../build/src/zimsplit",
+        "--size", "1",
+        "data/zimfiles/good.zim",
+        nullptr
+    };
+    EXPECT_NE(run_command(argv), 0);
 }
 
 TEST(ZimSplit, WarnsAndContinuesWithForce)
 {
-    const std::string cmd = "../build/src/zimsplit --size 1 --force ../test/data/zimfiles/good.zim";
-    EXPECT_EQ(std::system(cmd.c_str()), 0);
+    const char* argv[] = {
+        "../build/src/zimsplit",
+        "--size", "1",
+        "--force",
+        "data/zimfiles/good.zim",
+        nullptr
+    };
+    EXPECT_EQ(run_command(argv), 0);
 }
