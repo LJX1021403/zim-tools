@@ -23,16 +23,22 @@ zimwriter_srcs = [  '../src/zimwriterfs/tools.cpp',
 tests_src_map = { 'zimcheck-test' : ['../src/zimcheck/zimcheck.cpp', '../src/zimcheck/checks.cpp',  '../src/zimcheck/json_tools.cpp', '../src/tools.cpp', '../src/metadata.cpp'],
                   'tools-test' : zimwriter_srcs,
                   'metadata-test' : ['../src/metadata.cpp', '../src/tools.cpp'],
-                  'zimsplit-test' : ['../src/zimsplit_size.cpp', '../src/tools.cpp'],
+                  'zimsplit-test' : ['../src/zimsplit.cpp', '../src/zimsplit_size.cpp', '../src/tools.cpp'],
                   'zimwriterfs-zimcreatorfs' : zimwriter_srcs }
 
 if gtest_dep.found() and not meson.is_cross_build()
 
     foreach test_name : tests
 
+        extra_cpp_args = []
+        if test_name == 'zimsplit-test'
+            extra_cpp_args = ['-DZIMSPLIT_TEST']
+        endif
+
         test_exe = executable(test_name, [test_name+'.cpp'] + tests_src_map[test_name],
                               dependencies : test_deps,
                               include_directories: inc,
+                              cpp_args: extra_cpp_args,
                               build_rpath : '$ORIGIN')
 
         test(test_name, test_exe, timeout : 60,

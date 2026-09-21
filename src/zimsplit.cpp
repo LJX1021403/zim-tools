@@ -20,6 +20,9 @@
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
+#include <algorithm>
+#include <iostream>
+#include <vector>
 
 #define ZIM_PRIVATE
 #include <zim/archive.h>
@@ -32,6 +35,8 @@
 #define BUFFER_SIZE 4096
 
 const zim::size_type DEFAULT_PART_SIZE = 2147483648;
+// 100MB practical lower limit for part size
+constexpr zim::size_type MIN_PRACTICAL_PART_SIZE = 100 * 1024 * 1024;
 
 class ZimSplitter
 {
@@ -186,28 +191,43 @@ Options:
     --version           Show zimsplit version.
 )";
 
-int main(int argc, char* argv[])
+int zimsplit(const std::vector<const char*>& args)
 {
   try
   {
     std::ostringstream versions;
     printVersions(versions);
-    auto args = docopt::docopt(USAGE,
-                              {argv + 1, argv + argc},
+    auto docoptArgs = docopt::docopt(USAGE,
+                                {args.begin() + 1, args.end()},
                               true,
                               versions.str());
 
-    std::string prefix = args["<file>"].asString();
-    if (args["--prefix"])
-        prefix = args["--prefix"].asString();
+    std::string prefix = docoptArgs["<file>"].asString();
+    if (docoptArgs["--prefix"])
+        prefix = docoptArgs["--prefix"].asString();
 
     zim::size_type size = DEFAULT_PART_SIZE;
-    if (args["--size"])
-        size = parseByteSize(args["--size"].asString());
-    const bool force = args["--force"].asBool();
+    if (docoptArgs["--size"])
+        size = parseByteSize(docoptArgs["--size"].asString());
 
-    // initalize app
-    ZimSplitter app(args["<file>"].asString(), prefix, size, force);
+    const bool force = docoptArgs["--force"].asBool();
+
+    if (size < MIN_PRACTICAL_PART_SIZE) {
+        if (!force) {
+            std::cerr << "Error: part size must be at least "
+                      << MIN_PRACTICAL_PART_SIZE
+                      << " bytes (100MB). Use --force to override." << std::endl;
+            return -1;
+        } else {
+            std::cout << "Warning: part size (" << size
+                      << ") is smaller than the recommended minimum ("
+                      << MIN_PRACTICAL_PART_SIZE
+                      << " bytes). Parts may be smaller than expected." << std::endl;
+        }
+    }
+
+    // initialize app
+    ZimSplitter app(docoptArgs["<file>"].asString(), prefix, size, force);
 
     if (!force && !app.check()) {
         std::cout << "Creation of zim parts canceled because of previous errors." << std::endl;
@@ -225,3 +245,10 @@ int main(int argc, char* argv[])
   return 0;
 }
 
+#ifndef ZIMSPLIT_TEST
+int main(int argc, char* argv[])
+{
+  std::vector<const char*> args(argv, argv + argc);
+  return zimsplit(args);
+}
+#endif

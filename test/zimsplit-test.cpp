@@ -1,9 +1,14 @@
 #include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <sstream>
+#include <iostream>
+#include <vector>
 
 #include "../src/zimsplit_size.h"
 #include "gtest/gtest.h"
+
+int zimsplit(const std::vector<const char*>& args);
 
 namespace
 {
@@ -20,6 +25,36 @@ namespace
 
 constexpr auto TOO_LARGE_PART_SIZE_ERROR
     = "part size must be smaller than the input ZIM file";
+
+class CapturedStdStream
+{
+  std::ostream& stream;
+  std::ostringstream buffer;
+  std::streambuf* const sbuf;
+public:
+  explicit CapturedStdStream(std::ostream& os)
+    : stream(os)
+    , sbuf(os.rdbuf())
+  {
+    stream.rdbuf(buffer.rdbuf());
+  }
+  CapturedStdStream(const CapturedStdStream&) = delete;
+  ~CapturedStdStream()
+  {
+    stream.rdbuf(sbuf);
+  }
+  operator std::string() const { return buffer.str(); }
+};
+
+struct CapturedStdout : CapturedStdStream
+{
+  CapturedStdout() : CapturedStdStream(std::cout) {}
+};
+
+struct CapturedStderr : CapturedStdStream
+{
+  CapturedStderr() : CapturedStdStream(std::cerr) {}
+};
 
 }  // namespace
 
@@ -108,4 +143,20 @@ TEST(ZimSplitSize, ValidatesPartSizeAgainstArchive)
                            TOO_LARGE_PART_SIZE_ERROR);
   EXPECT_INVALID_ARG_ERROR(validatePartSize(101, 100),
                            TOO_LARGE_PART_SIZE_ERROR);
+}
+
+TEST(ZimSplit, RejectsTooSmallSizeWithoutForce)
+{
+    CapturedStdout out;
+    CapturedStderr err;
+    int ret = zimsplit({"zimsplit", "--size", "1", "data/zimfiles/good.zim"});
+    EXPECT_NE(ret, 0);
+}
+
+TEST(ZimSplit, WarnsAndContinuesWithForce)
+{
+    CapturedStdout out;
+    CapturedStderr err;
+    int ret = zimsplit({"zimsplit", "--size", "1", "--force", "data/zimfiles/good.zim"});
+    EXPECT_EQ(ret, 0);
 }
