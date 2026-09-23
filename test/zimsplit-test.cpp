@@ -7,6 +7,7 @@
 
 #include "../src/zimsplit_size.h"
 #include "gtest/gtest.h"
+#include "testing_helpers.h"
 
 int zimsplit(const std::vector<const char*>& args);
 
@@ -26,37 +27,7 @@ namespace
 constexpr auto TOO_LARGE_PART_SIZE_ERROR
     = "part size must be smaller than the input ZIM file";
 
-class CapturedStdStream
-{
-  std::ostream& stream;
-  std::ostringstream buffer;
-  std::streambuf* const sbuf;
-public:
-  explicit CapturedStdStream(std::ostream& os)
-    : stream(os)
-    , sbuf(os.rdbuf())
-  {
-    stream.rdbuf(buffer.rdbuf());
-  }
-  CapturedStdStream(const CapturedStdStream&) = delete;
-  ~CapturedStdStream()
-  {
-    stream.rdbuf(sbuf);
-  }
-  operator std::string() const { return buffer.str(); }
-};
-
-struct CapturedStdout : CapturedStdStream
-{
-  CapturedStdout() : CapturedStdStream(std::cout) {}
-};
-
-struct CapturedStderr : CapturedStdStream
-{
-  CapturedStderr() : CapturedStdStream(std::cerr) {}
-};
-
-}  // namespace
+}  // namespace  
 
 TEST(ZimSplitSize, ParsesBytes)
 {

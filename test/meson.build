@@ -20,10 +20,10 @@ zimwriter_srcs = [  '../src/zimwriterfs/tools.cpp',
                     '../src/zimwriterfs/zimcreatorfs.cpp',
                     '../src/tools.cpp']
 
-tests_src_map = { 'zimcheck-test' : ['../src/zimcheck/zimcheck.cpp', '../src/zimcheck/checks.cpp',  '../src/zimcheck/json_tools.cpp', '../src/tools.cpp', '../src/metadata.cpp'],
+tests_src_map = { 'zimcheck-test' : ['../src/zimcheck/zimcheck.cpp', '../src/zimcheck/checks.cpp',  '../src/zimcheck/json_tools.cpp', '../src/tools.cpp', '../src/metadata.cpp', 'testing_helpers.cpp'],
                   'tools-test' : zimwriter_srcs,
                   'metadata-test' : ['../src/metadata.cpp', '../src/tools.cpp'],
-                  'zimsplit-test' : ['../src/zimsplit.cpp', '../src/zimsplit_size.cpp', '../src/tools.cpp'],
+                  'zimsplit-test' : ['../src/zimsplit.cpp', '../src/zimsplit_size.cpp', '../src/tools.cpp', 'testing_helpers.cpp'],
                   'zimwriterfs-zimcreatorfs' : zimwriter_srcs }
 
 if gtest_dep.found() and not meson.is_cross_build()
