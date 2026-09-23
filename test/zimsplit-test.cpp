@@ -131,3 +131,29 @@ TEST(ZimSplit, WarnsAndContinuesWithForce)
     int ret = zimsplit({"zimsplit", "--size", "1", "--force", "data/zimfiles/good.zim"});
     EXPECT_EQ(ret, 0);
 }
+
+TEST(ZimSplit, RejectsInvalidSize)
+{
+    CapturedStdout out;
+    CapturedStderr err;
+    int ret = zimsplit({"zimsplit", "--size", "abc", "data/zimfiles/good.zim"});
+    EXPECT_EQ(ret, -2);
+    EXPECT_NE(std::string(err).find("invalid size"), std::string::npos);
+}
+
+TEST(ZimSplit, RejectsZeroSize)
+{
+    CapturedStdout out;
+    CapturedStderr err;
+    int ret = zimsplit({"zimsplit", "--size", "0", "data/zimfiles/good.zim"});
+    EXPECT_EQ(ret, -2);
+    EXPECT_NE(std::string(err).find("positive"), std::string::npos);
+}
+
+TEST(ZimSplit, NonexistentFile)
+{
+    CapturedStdout out;
+    CapturedStderr err;
+    int ret = zimsplit({"zimsplit", "--size", "1", "data/zimfiles/nonexistent.zim"});
+    EXPECT_NE(ret, 0);
+}
