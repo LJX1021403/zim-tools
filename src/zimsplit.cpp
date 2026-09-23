@@ -245,10 +245,3 @@ int zimsplit(const std::vector<const char*>& args)
   return 0;
 }
 
-#ifndef ZIMSPLIT_TEST
-int main(int argc, char* argv[])
-{
-  std::vector<const char*> args(argv, argv + argc);
-  return zimsplit(args);
-}
-#endif

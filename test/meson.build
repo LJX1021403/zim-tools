@@ -30,15 +30,9 @@ if gtest_dep.found() and not meson.is_cross_build()
 
     foreach test_name : tests
 
-        extra_cpp_args = []
-        if test_name == 'zimsplit-test'
-            extra_cpp_args = ['-DZIMSPLIT_TEST']
-        endif
-
         test_exe = executable(test_name, [test_name+'.cpp'] + tests_src_map[test_name],
                               dependencies : test_deps,
                               include_directories: inc,
-                              cpp_args: extra_cpp_args,
                               build_rpath : '$ORIGIN')
 
         test(test_name, test_exe, timeout : 60,
