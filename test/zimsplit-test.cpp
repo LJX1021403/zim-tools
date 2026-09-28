@@ -115,19 +115,19 @@ TEST(ZimSplitSize, ValidatesPartSizeAgainstArchive)
                            TOO_LARGE_PART_SIZE_ERROR);
 }
 
-
 TEST(ZimSplit, RejectsTooSmallSizeWithoutForce)
 {
     CapturedStdout out;
     CapturedStderr err;
     int ret = zimsplit({"zimsplit", "--size", "1", "data/zimfiles/good.zim"});
     EXPECT_NE(ret, 0);
+    EXPECT_EQ(std::string(err),
+              "Error: part size must be at least 104857600 bytes. Use --force to override.\n");
+    EXPECT_EQ(std::string(out), "");
 }
 
 TEST(ZimSplit, WarnsAndContinuesWithForce)
 {
-    CapturedStdout out;
-    CapturedStderr err;
     int ret = zimsplit({"zimsplit", "--size", "1", "--force", "data/zimfiles/good.zim"});
     EXPECT_EQ(ret, 0);
 }
@@ -137,8 +137,9 @@ TEST(ZimSplit, RejectsInvalidSize)
     CapturedStdout out;
     CapturedStderr err;
     int ret = zimsplit({"zimsplit", "--size", "abc", "data/zimfiles/good.zim"});
-    EXPECT_EQ(ret, -2);
-    EXPECT_NE(std::string(err).find("invalid size"), std::string::npos);
+    EXPECT_NE(ret, 0);
+    EXPECT_EQ(std::string(err), "invalid size value: abc\n");
+    EXPECT_EQ(std::string(out), "");
 }
 
 TEST(ZimSplit, RejectsZeroSize)
@@ -146,8 +147,9 @@ TEST(ZimSplit, RejectsZeroSize)
     CapturedStdout out;
     CapturedStderr err;
     int ret = zimsplit({"zimsplit", "--size", "0", "data/zimfiles/good.zim"});
-    EXPECT_EQ(ret, -2);
-    EXPECT_NE(std::string(err).find("positive"), std::string::npos);
+    EXPECT_NE(ret, 0);
+    EXPECT_EQ(std::string(err), "part size must be positive: 0\n");
+    EXPECT_EQ(std::string(out), "");
 }
 
 TEST(ZimSplit, NonexistentFile)
@@ -156,4 +158,6 @@ TEST(ZimSplit, NonexistentFile)
     CapturedStderr err;
     int ret = zimsplit({"zimsplit", "--size", "100000000", "data/zimfiles/nonexistent.zim"});
     EXPECT_NE(ret, 0);
+    EXPECT_EQ(std::string(err), "Error opening ZIM file: data/zimfiles/nonexistent.zim\n");
+    EXPECT_EQ(std::string(out), "");
 }
